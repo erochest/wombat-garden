@@ -1,0 +1,82 @@
+name:                wombat-garden
+version:             0.0.0.0
+synopsis:            A garden to grow Wombat-bots.
+description:         This is a genetic programming system to cultivate warrior wombat-bots (http://wombats.io).
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Eric Rochester
+maintainer:          eric.rochester@willowtreeapps.com
+copyright:           Copyright (c) 2017, WillowTree, Inc
+-- category:            
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     WombatGarden.Actions.Grow
+                     , WombatGarden.Actions.Init
+                     , WombatGarden.Actions.Report
+                     , WombatGarden.Types
+  -- other-modules:       
+  -- other-extensions:    
+  build-depends:       base >=4.8 && <4.10
+                     , errors
+                     , lens
+                     , text
+                     , text-format
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+executable wombat-garden
+  main-is:             Main.hs
+  other-modules:       Actions
+                     , Opts
+                     , Types
+  -- other-extensions:    
+  build-depends:       base >=4.8 && <5
+                     , wombat-garden
+                     , errors
+                     , text
+                     , optparse-applicative
+                     , optparse-text
+                     , errors
+  hs-source-dirs:      app
+  ghc-options:         -O2
+                       -threaded
+                       -rtsopts
+                       "-with-rtsopts=-N"
+                       -- -fprof-auto "-with-rtsopts=-N -p -s -h -i0.1"
+  default-language:    Haskell2010
+
+test-suite wombat-garden-specs
+  type:                exitcode-stdio-1.0
+  ghc-options:         -threaded -rtsopts
+  hs-source-dirs:      specs
+  main-is:             Specs.hs
+  other-modules:         WombatGarden.TypesSpec
+  build-depends:         base
+                       , wombat-garden
+                       , errors
+                       , lens
+                       , text
+                       , QuickCheck
+                       , smallcheck
+                       , hspec
+  default-language:    Haskell2010
+
+benchmark wombat-garden-bench
+  type:                exitcode-stdio-1.0
+  ghc-options:         -O2
+                       -threaded
+                       -rtsopts
+  hs-source-dirs:      bench
+  main-is:             Bench.hs
+  -- other-modules:         
+  build-depends:         base
+                       , wombat-garden
+                       , criterion
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/erochest/wombat-garden
