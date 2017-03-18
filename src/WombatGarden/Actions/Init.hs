@@ -10,7 +10,6 @@ import           Data.Aeson           (encode)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text            as T
 import           System.Directory
-import           System.FilePath
 import           System.IO
 import           System.Process
 
@@ -24,9 +23,9 @@ initAction name population carryOver newRandom crossOver mutation
   scriptIO $ createDirectoryIfMissing True name'
   scriptIO $ withCurrentDirectory name' $ runScript $ do
     git_ "init" []
-    hub_ "create" []
-    scriptIO $ BL.writeFile (name' </> "params.json") $ encode params
-    scriptIO $ BL.writeFile (name' </> "data-log.json") mempty
+    -- hub_ "create" []
+    scriptIO $ BL.writeFile "params.json" $ encode params
+    scriptIO $ BL.writeFile "data-log.json" mempty
 
     -- TODO: generate first generation
     void $ undefined

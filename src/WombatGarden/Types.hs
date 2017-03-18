@@ -35,6 +35,7 @@ data Parameters
 makeClassy ''Parameters
 
 
+-- TODO: fieldLabelModifier should convert to underscores.
 paramOptions :: Options
 paramOptions = defaultOptions { fieldLabelModifier = L.drop 6 }
 
