@@ -34,10 +34,10 @@ data Parameters
 
 makeClassy ''Parameters
 
-
--- TODO: fieldLabelModifier should convert to underscores.
 paramOptions :: Options
-paramOptions = defaultOptions { fieldLabelModifier = L.drop 6 }
+paramOptions = defaultOptions
+               { fieldLabelModifier = camelTo2 '_' . L.drop 6
+               }
 
 instance ToJSON Parameters where
   toJSON     = genericToJSON     paramOptions
