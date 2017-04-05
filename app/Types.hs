@@ -1,17 +1,15 @@
 module Types where
 
 
-import qualified Data.Text as T
+import qualified Data.Text          as T
+
+import           WombatGarden.Types
 
 
 data Actions
   = Init   { initName       :: !T.Text
-           , initPopulation :: !Int
-           , initCarryOver  :: !Int
-           , initNewRandom  :: !Int
-           , initCrossOver  :: !Double
-           , initMutation   :: !Double
-           , initDepth      :: !Int
+           , initParameters :: !Parameters
+           , initPublish    :: !Bool
            }
   | Grow   { growName   :: !T.Text
            , growKey    :: !T.Text

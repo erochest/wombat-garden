@@ -17,7 +17,6 @@ import           Types
 
 action :: Actions -> Script ()
 
-action Init{..} = initAction initName initPopulation initCarryOver
-                  initNewRandom initCrossOver initMutation initDepth
-action Grow{..} = growAction growName growKey growN growApiUrl
+action Init{..}   = initAction initName initParameters initPublish
+action Grow{..}   = growAction growName growKey growN growApiUrl
 action Report{..} = reportAction reportName reportOutput

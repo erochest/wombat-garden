@@ -5,7 +5,9 @@ BUILD_FLAGS=--pedantic
 RUN=stack exec -- wombat-garden
 
 run: build
-	$(RUN) --help
+	-rm -rf temp-garden
+	$(RUN) init --name temp-garden --population 50 --new-name 0.1
+
 
 init: stack.yaml
 

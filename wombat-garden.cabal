@@ -16,6 +16,8 @@ library
   exposed-modules:     WombatGarden.Actions.Grow
                      , WombatGarden.Actions.Init
                      , WombatGarden.Actions.Report
+                     , WombatGarden.GP.Generate
+                     , WombatGarden.GP.JavaScript
                      , WombatGarden.Types
   -- other-modules:       
   -- other-extensions:    
@@ -25,11 +27,19 @@ library
                      , directory
                      , errors
                      , filepath
+                     , generics-sop
+                     , language-javascript
                      , lens
                      , lens-aeson
+                     , mtl
+                     , mwc-random
+                     , primitive
                      , process
+                     , safe-exceptions
                      , text
                      , text-format
+                     , unordered-containers
+                     , vector
   hs-source-dirs:      src
   default-language:    Haskell2010
 
