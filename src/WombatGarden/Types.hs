@@ -32,6 +32,12 @@ import qualified System.Random.MWC        as R
 import Data.Foldable
 import Control.Error
 import Control.Exception.Safe
+import qualified Control.Exception.Safe as E
+import Control.Monad.Catch
+import Control.Exception.Base
+import Data.Maybe
+
+import Debug.Trace
 
 
 data Parameters
@@ -61,20 +67,43 @@ instance FromJSON Parameters where
 
 data GPState s =
   GPS
-  { _gpsGen   :: !(R.GenST s)
-  , _gpsNames :: !(S.HashSet String)
+  { _gpsNames :: !(S.HashSet String)
+  , _gpsDepth :: !Int
+  , _gpsGen   :: !(R.GenST s)
   }
 makeLenses ''GPState
 
-newtype GP e s a =
-  GP { unGP :: ExceptT e (RWST Parameters () (GPState s) (ST s)) a }
+newtype GP s a =
+  GP { unGP :: ExceptT SomeException (RWST Parameters () (GPState s) (ST s)) a }
   deriving ( Functor, Applicative, Monad, MonadState (GPState s)
            , MonadReader Parameters
            )
 
-runGP :: Exception e => Parameters -> (forall s. GP e s a) -> Either e a
+instance MonadThrow (GP s) where
+  throwM e = GP $ hoistEither $ Left $ toException e
+
+instance MonadCatch (GP s) where
+  catch action handler = do
+    v <- GP $ ExceptT $ fmap Right $ RWST $
+      runRWST (runExceptT $ unGP action)
+    case v of
+      Right v' -> return v'
+      Left  e  -> maybe
+                  (E.throwM
+                   (toException
+                    (AssertionFailed "Invalid Exception type")))
+                  handler
+                  $ fromException e
+
+instance MonadMask (GP s) where
+  -- | Async shouldn't be an option in the ST monad, so I can just do
+  -- the simplest thing possible.
+  mask a = a id
+  uninterruptibleMask a = a id
+
+runGP :: Parameters -> (forall s. GP s a) -> Either SomeException a
 runGP params gp = fst $ runST $
-  evalRWST (runExceptT (unGP gp)) params . (`GPS` mempty) =<< R.create
+  evalRWST (runExceptT (unGP gp)) params . GPS mempty 0 =<< R.create
 
 -- | This runs the action and returns the result, but it throws away
 -- any changes to state that it makes.
@@ -85,23 +114,39 @@ forkState action = do
   put s
   return a
 
-getNames :: GP e s (S.HashSet String)
+-- | This checks the depth in the current state against the maximum in
+-- the parameters. If it can go deeper, it will increment the depth
+-- and run the first action; if it cannot, it will run the second
+-- action, which will probably be a subset of the first.
+withDepth :: GP s a -> GP s a -> GP s a
+withDepth _moar _less = do
+  _maxDepth <- view paramDepth
+  -- bracket
+  --   (do
+  --       d <- use gpsDepth
+  --       assign gpsDepth (d + 1)
+  --       return d)
+  --   (assign gpsDepth)
+  --   (\d -> if d < maxDepth then moar else less)
+  undefined
+
+getNames :: GP s (S.HashSet String)
 getNames = use gpsNames
 
-addName :: String -> GP e s ()
+addName :: String -> GP s ()
 addName n = modifying gpsNames (S.insert n)
 
 -- | Creates a new name, saves it to the set of names, and returns it.
-newName :: GP e s String
-newName = state $ \GPS{_gpsGen=gen,_gpsNames=names} ->
+newName :: GP s String
+newName = state $ \gps@GPS{_gpsNames=names} ->
   let new    = "name" <> show (S.size names)
       names' = S.insert new names
-  in  (new, GPS gen names')
+  in  (new, gps & gpsNames .~ names')
 
-name :: GP e s String
+name :: GP s String
 name = choice . toList =<< getNames
 
-maybeNewName :: GP e s String
+maybeNewName :: GP s String
 maybeNewName = do
   x :: Double <- uniform
   rate <- view paramNewName
@@ -109,36 +154,39 @@ maybeNewName = do
     then newName
     else name
 
-uniform :: R.Variate a => GP e s a
+uniform :: R.Variate a => GP s a
 uniform = GP . ExceptT . RWST $ \_ g ->
   (, g, ()) . Right <$> R.uniform (_gpsGen g)
 
-uniformR :: R.Variate a => (a, a) -> GP e s a
+uniformR :: R.Variate a => (a, a) -> GP s a
 uniformR range = GP . ExceptT . RWST $ \_ g ->
   (, g, ()) . Right <$> R.uniformR range (_gpsGen g)
 
-uniformVector :: R.Variate a => Int -> GP e s (V.Vector a)
+uniformVector :: R.Variate a => Int -> GP s (V.Vector a)
 uniformVector size = GP . ExceptT . RWST $ \_ g ->
   (, g, ()) . Right <$> R.uniformVector (_gpsGen g) size
 
-choice :: [a] -> GP e s a
+choice :: [a] -> GP s a
 choice xs = (xs !!) <$> uniformR (0, L.length xs - 1)
 
 class Genetic ast where
-  randomGene :: GP e s ast
+  randomGene :: GP s ast
 
 instance Genetic x => Genetic [x] where
   randomGene = (`replicateM` randomGene) =<< uniformR (1, 1024)
 
 instance Genetic x => Genetic (Maybe x) where
   randomGene = do
-    n <- uniform :: (GP e s Double)
+    n <- uniform :: (GP s Double)
     if n < 0.5
       then pure Nothing
       else Just <$> randomGene
 
-gRandomGene :: forall e s a. (All2 Genetic (Code a), Generic a) => GP e s a
-gRandomGene =
+gRandomGene :: forall s a. (All2 Genetic (Code a), Generic a, Typeable a)
+            => GP s a
+gRandomGene = do
+  traceM . ("gRandomGene: " L.++) . show $ typeRep a'
   liftM to $ hsequence =<< choice (apInjs_POP $ hcpure genetic randomGene)
   where
+    a' = Proxy :: Proxy a
     genetic = Proxy :: Proxy Genetic

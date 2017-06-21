@@ -20,29 +20,31 @@ import           Numeric                        (showHex, showOct)
 
 import           WombatGarden.Types
 
+import           Debug.Trace
+
 
 annot :: JSAnnot
 annot  = JSNoAnnot
 
-annot' :: GP e s JSAnnot
+annot' :: GP s JSAnnot
 annot' = pure JSNoAnnot
 
-newJSIdent :: GP e s JSIdent
+newJSIdent :: GP s JSIdent
 newJSIdent = JSIdentName JSNoAnnot <$> newName
 
-noJSIdent :: GP e s JSIdent
+noJSIdent :: GP s JSIdent
 noJSIdent = pure JSIdentNone
 
-maybeJSIdent :: GP e s JSIdent
+maybeJSIdent :: GP s JSIdent
 maybeJSIdent = JSIdentName annot <$> maybeNewName
 
-jsIdentifier :: GP e s JSExpression
+jsIdentifier :: GP s JSExpression
 jsIdentifier = JSIdentifier annot <$> name
 
-newJSIdentifier :: GP e s JSExpression
+newJSIdentifier :: GP s JSExpression
 newJSIdentifier = JSIdentifier annot <$> newName
 
-maybeNewJSIdentifier :: GP e s JSExpression
+maybeNewJSIdentifier :: GP s JSExpression
 maybeNewJSIdentifier = JSIdentifier annot <$> maybeNewName
 
 data NewAssign = NewAssign { unNewAssign :: !JSExpression }
@@ -51,13 +53,13 @@ data NewAssign = NewAssign { unNewAssign :: !JSExpression }
 instance Genetic NewAssign where
   randomGene = NewAssign <$> randomGene
 
-newAssign :: GP e s JSExpression
+newAssign :: GP s JSExpression
 newAssign = JSAssignExpression
             <$> newJSIdentifier
             <*> pure (JSAssign annot)
             <*> randomGene
 
-newAssign' :: NewAssign -> GP e s JSExpression
+newAssign' :: NewAssign -> GP s JSExpression
 newAssign' (NewAssign expression) = do
   new <- newJSIdentifier
   return $ JSAssignExpression new (JSAssign annot) expression
@@ -70,10 +72,10 @@ toCommaList xs = go $ reverse xs
     go [y]    = JSLOne y
     go (y:ys) = JSLCons (go ys) annot y
 
-newAssignList :: GP e s (JSCommaList JSExpression)
+newAssignList :: GP s (JSCommaList JSExpression)
 newAssignList = fmap toCommaList $ mapM newAssign' =<< randomGene
 
--- assign :: GP e s JSExpression
+-- assign :: GP s JSExpression
 -- assign
 
 deriving instance G.Generic JSAccessor
@@ -177,16 +179,17 @@ instance Genetic JSBinOp where
 instance Genetic JSBlock where
   randomGene = gRandomGene
 
-instance (G.Generic x, Generic x, Genetic x)
+instance (G.Generic x, Generic x, Genetic x, Typeable x)
          => Genetic (JSCommaList x) where
   randomGene = gRandomGene
 
-instance (G.Generic x, Generic x, Genetic x)
+instance (G.Generic x, Generic x, Genetic x, Typeable x)
          => Genetic (JSCommaTrailingList x) where
   randomGene = gRandomGene
 
 instance Genetic JSExpression where
-  randomGene =
+  randomGene = do
+    traceM "JSExpression"
     join $ choice [ JSIdentifier annot <$> identifier
                   , JSDecimal annot <$> decimal
                   , JSLiteral annot <$> literal
@@ -232,29 +235,30 @@ instance Genetic JSExpression where
                   ]
     where
       identifier, decimal, literal, hex, octal, strLiteral
-        , regex :: GP e s String
+        , regex :: GP s String
 
       identifier = name
       decimal = show <$> uniformR (-1024 :: Double, 1024 :: Double)
       literal = choice ["null", "true", "false", "this"]
-      hex = (`showHex` "") <$> uniformR (-1024 :: Int, -1024 :: Int)
-      octal = (`showOct` "") <$> uniformR (-1024 :: Int, -1024 :: Int)
+      hex = (`showHex` "") <$> uniformR (0 :: Int, 1024 :: Int)
+      octal = (`showOct` "") <$> uniformR (0 :: Int, 1024 :: Int)
       strLiteral =
         (`replicateM` (chr <$> uniformR (ord ' ', ord '~')))
         =<< uniformR (0, 1024)
       regex = strLiteral
 
-      array :: GP e s [JSArrayElement]
+      array :: GP s [JSArrayElement]
       array = randomGene
 
 instance Genetic JSIdent where
-  randomGene = JSIdentName <$> randomGene <*> name
+  randomGene = traceM "JSIdent" >> JSIdentName <$> randomGene <*> name
 
 instance Genetic JSObjectProperty where
   randomGene = gRandomGene
 
 instance Genetic JSPropertyName where
   randomGene = do
+    traceM "JSPropertyName"
     names <- use gpsNames
     JSPropertyString <$> randomGene <*> choice (toList names)
 
@@ -262,7 +266,8 @@ instance Genetic JSSemi where
   randomGene = gRandomGene
 
 instance Genetic JSStatement where
-  randomGene =
+  randomGene = do
+    traceM "JSStatement"
     join $ choice [ JSStatementBlock annot <$> randomGene <*> annot'
                     <*> randomGene
                   , JSBreak annot <$> noJSIdent <*> randomGene

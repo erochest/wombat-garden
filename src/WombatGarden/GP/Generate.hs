@@ -6,7 +6,6 @@
 module WombatGarden.GP.Generate where
 
 
-import           Control.Exception.Safe
 import           Control.Lens
 import           Control.Monad
 import           Data.Bifunctor
@@ -19,7 +18,7 @@ import           WombatGarden.GP.JavaScript     ()
 import           WombatGarden.Types
 
 
-initializePopulation :: GP SomeException s [(String, TL.Text)]
+initializePopulation :: GP s [(String, TL.Text)]
 initializePopulation = do
   n <- view paramPopulation
   setNames
@@ -34,7 +33,7 @@ initializePopulation = do
 
   return $ fmap (first getFilename) $ zip [1..] population
 
-setNames :: GP e s ()
+setNames :: GP s ()
 setNames = assign gpsNames [ "main", "state", "timeLeftFn"
                            , "getGlobalCoords", "getLocalCoords"
                            , "getGlobalDimensions", "getSavedState"
