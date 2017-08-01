@@ -30,7 +30,7 @@ initAction repoName params publish = do
     scriptIO $ BL.writeFile "params.json" $ encode params
     scriptIO $ BL.writeFile "data-log.json" mempty
 
-    hoistEither (first displayException
+    hoistEither (first (T.pack . displayException)
                  $ runGP params initializePopulation)
       >>= scriptIO . mapM_ (uncurry TLIO.writeFile)
 

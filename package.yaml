@@ -1,0 +1,85 @@
+name: wombat-garden
+version: '0.0.0.0'
+synopsis: A garden to grow Wombat-bots.
+description: This is a genetic programming system to cultivate warrior wombat-bots
+  (http://wombats.io).
+author: Eric Rochester
+maintainer: eric.rochester@willowtreeapps.com
+copyright: Copyright (c) 2017, WillowTree, Inc
+license: Apache-2.0
+github: erochest/wombat-garden
+library:
+  source-dirs: src
+  exposed-modules:
+  - WombatGarden.Actions.Grow
+  - WombatGarden.Actions.Init
+  - WombatGarden.Actions.Report
+  - WombatGarden.GP.Generate
+  - WombatGarden.GP.JavaScript
+  - WombatGarden.Types
+  dependencies:
+  - base >=4.8 && <4.10
+  - aeson
+  - bytestring
+  - directory
+  - errors
+  - exceptions
+  - filepath
+  - generics-sop
+  - language-javascript
+  - lens
+  - lens-aeson
+  - mtl
+  - mwc-random
+  - primitive
+  - process
+  - safe-exceptions
+  - text
+  - text-format
+  - unordered-containers
+  - vector
+executables:
+  wombat-garden:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -O2
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base >=4.8 && <5
+    - wombat-garden
+    - errors
+    - text
+    - optparse-applicative
+    - optparse-text
+    - errors
+tests:
+  wombat-garden-specs:
+    main: Specs.hs
+    source-dirs: specs
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    dependencies:
+    - base
+    - wombat-garden
+    - errors
+    - lens
+    - text
+    - QuickCheck
+    - smallcheck
+    - hspec
+benchmarks:
+  wombat-garden-bench:
+    main: Bench.hs
+    source-dirs: bench
+    ghc-options:
+    - -O2
+    - -threaded
+    - -rtsopts
+    dependencies:
+    - base
+    - wombat-garden
+    - criterion
